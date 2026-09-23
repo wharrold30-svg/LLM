@@ -30,7 +30,7 @@ struct TensorNode{
 
     std::vector<size_t> left_strides;
     std::vector<size_t> right_strides;
-}
+};
 
 class Tensor{
 private:
@@ -58,7 +58,7 @@ private:
 
             const double gradient = output->grad[flat];
 
-            const auto [leftDerivative, rightDerivative] = localDerivatives(left->data[left[leftIndex]],right->data[right[rightIndex]]);
+            const auto [leftDerivative, rightDerivative] = localDerivatives(left->data[leftIndex],right->data[rightIndex]);
 
             left->grad[leftIndex] += gradient * leftDerivative;
             right->grad[rightIndex] += gradient * rightDerivative;
@@ -206,8 +206,8 @@ private:
 public:
     Tensor( const std::vector<size_t>& shape, const std::vector<double>& data)
     	:m_node(std::make_shared<TensorNode>()){
-            m_nodes->shape = std::move(shape);
-            m_nodes->data = std::move(data);
+            m_node->shape = std::move(shape);
+            m_node->data = std::move(data);
 
     	    size_t expectedElements;
     	    bool hasZeroDim = false;
@@ -329,7 +329,7 @@ public:
              result += value;
          }
          Tensor output({ }, { result});
-         output.m_node->operarion = Operation::sum;
+         output.m_node->operation = Operation::sum;
          output.m_node->parents = {m_node};
          return output;
      }
