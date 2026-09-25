@@ -249,6 +249,11 @@ public:
     [[nodiscard]] const std::vector<double>& getGrad() const noexcept{
         return m_node->grad;
     }
+    
+    void zeroGrad(){
+        std::fill(m_node->grad.begin(), m_node->grad.end(),0.0);
+    }
+
     void backward(){
         if(getRank() != 0){
             throw std::invalid_argument("backward requires a scalar loss");
@@ -260,7 +265,9 @@ public:
 
         //now clear all gradients
         for(TensorNode* node : topology){
-            std::fill(node->grad.begin(),node->grad.end(), 0.0);
+            if(node->operation != Operation::leaf){
+                std::fill(node->grad.begin(),node->grad.end(), 0.0);
+            }
         }
 
         m_node->grad[0] = 1.0;
@@ -295,6 +302,38 @@ public:
             return std::pair{1.0 / denominator, -numerator / (numerator * numerator)}; 
             });
                     break;
+                case Operation::matmul : {
+                                             TensorNode* left = output->parents[0].get();
+                                             TensorNode* right = output->parents[1].get();
+
+                                             const size_t  leftRows = left->shape[0];
+                                             const size_t  leftCols = left->shape[1];
+
+                                             const size_t  rightCols = right->shape[1];
+                                             //for every left *right product
+                                             // left gradient += output gradient * right
+                                             // right gradient += output gradient * left
+                                             for(size_t row = 0; row < leftRows; ++row){
+                                                 for(size_t col = 0; col < rightCols; ++col){
+                                                     const size_t outputIndex = row * rightCols + col;
+                                                     for(size_t index = 0; index < leftCols; ++index){
+                                                         const size_t leftIndex = row * leftCols + index;
+                                                         const size_t rightIndex = index * rightCols + col;
+
+                                                         left->grad[leftIndex] += output->grad[outputIndex] * right->data[rightIndex];
+                                                         right->grad[rightIndex] += output->grad[outputIndex]* right->data[leftIndex];
+                                                     }
+                                                 }
+                                             }
+                                             break;
+                                         }
+                case Operation::sum : {
+                                          TensorNode* input = output->parents[0].get();
+                                          for(double& gradient : input->grad){
+                                              gradient += output->grad[0];
+                                          }
+                                          break;
+                                      }
 
 
                 default:
@@ -423,9 +462,49 @@ public:
     return (residual * residual).mean();
 }
 
+[[nodiscard]] Tensor linearForward(const Tensor& inputs,const Tensor& weights,const Tensor& bias){
+    return inputs.matmul(weights) + bias;
+ } 
 
+void gradientStep(Tensor& weights, Tensor& bias, double learningRate){
+    //for every weight:
+    //  weight -= learningRate * its gradient
+    //update bias the same way
+    //
+    //{feature, 0}
+
+    for(size_t feature = 0, end = weights.getDimension(0); feature < end; ++ feature){
+        weights.at({feature, 0}) -= learningRate * weights.getGrad()[feature];
+    }
+
+    bias.at({}) -= learningRate *bias.getGrad()[0];
+}
+
+void trainLinearRegression(const Tensor& inputs, const Tensor& targets,Tensor& weights, Tensor& bias, size_t steps, double learningRate){
+    for(size_t step = 0; step < steps; ++step){
+        weights.zeroGrad();
+        bias.zeroGrad();
+
+        const Tensor predictions = linearForward(inputs, weights, bias);
+        Tensor loss = mseLoss(predictions, targets);
+        loss.backward();
+        gradientStep(weights,bias, learningRate);
+    }
+}
+
+void trainLine(){
+    Tensor input({10, 1}, {0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0});
+    Tensor targets({10, 1}, {1.0, 3.0, 5.0, 7.0, 9.0, 11.0, 13.0, 15.0, 17.0, 19.0});
+
+    Tensor weight({1, 1}, {0.0});
+    Tensor bias({}, {0.0});
+
+    trainLinearRegression(input, targets, weight, bias, 10000,0.01);
+
+    std::cout << "Weight: " << weight.at({0, 0}) << "\n";
+    std::cout << "Bias: " << bias.at({}) << "\n";
+}
 int main (){
-      
       //shape  |  rank   |   elements  |  meaning
       //----------+-----------+------------------+-----------------------
       //   [  ]     |      0     |           1         |  scalar
@@ -438,7 +517,7 @@ int main (){
       //----------+-----------+------------------+-----------------------
       // [5, 0]  |      2      |          0         |  empty matrix 
       //----------+-----------+------------------+-----------------------
-      
+     /* 
       std::vector<size_t> shape_1{2, 3};
     std::vector<double> data_1{0, 1, 2, 3, 4, 5};
     
@@ -691,6 +770,8 @@ assert((squared_residuals.getData() ==std::vector<double>{1.0, 1.0} ));
 
     const Tensor perfect_loss = mseLoss(pred_23, pred_23);
     assert(perfect_loss.at({ }) == 0.0);
+*/
+    trainLine();
 
     
    std::puts("Successful!"); 

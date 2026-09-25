@@ -91,6 +91,7 @@ Tensor::operator /	Tensor.cpp	/^     [[nodiscard]] Tensor operator \/ (const Ten
 Tensor::strideOffset	Tensor.cpp	/^    [[nodiscard]] static size_t strideOffset(const std::vector<size_t>& coordinate,const std::ve/;"	f	class:Tensor	typeref:typename:size_t	file:	access:private	signature:(const std::vector<size_t> & coordinate,const std::vector<size_t> & effectiveStrides)
 Tensor::strides	Tensor.cpp	/^    [[nodiscard]] std::vector<size_t> strides() const {$/;"	f	class:Tensor	typeref:typename:std::vector<size_t>	file:	access:private	signature:() const
 Tensor::sum	Tensor.cpp	/^     [[nodiscard]] Tensor sum( ) const {$/;"	f	class:Tensor	typeref:typename:Tensor	file:	access:public	signature:() const
+Tensor::zeroGrad	Tensor.cpp	/^    void zeroGrad(){$/;"	f	class:Tensor	typeref:typename:void	file:	access:public	signature:()
 TensorNode	Tensor.cpp	/^struct TensorNode{$/;"	s	file:
 TensorNode::data	Tensor.cpp	/^    std::vector<double> data;$/;"	m	struct:TensorNode	typeref:typename:std::vector<double>	file:	access:public
 TensorNode::grad	Tensor.cpp	/^    std::vector<double> grad;$/;"	m	struct:TensorNode	typeref:typename:std::vector<double>	file:	access:public
@@ -130,9 +131,11 @@ getNumEle	Tensor.cpp	/^    [[nodiscard]] size_t getNumEle() const noexcept {$/;"
 getRank	Tensor.cpp	/^    [[nodiscard]] size_t getRank() const noexcept {$/;"	f	class:Tensor	typeref:typename:size_t	file:	access:public	signature:() const
 getShape	Tensor.cpp	/^    [[nodiscard]] const std::vector<size_t>& getShape() const noexcept{$/;"	f	class:Tensor	typeref:typename:const std::vector<size_t> &	file:	access:public	signature:() const
 grad	Tensor.cpp	/^    std::vector<double> grad;$/;"	m	struct:TensorNode	typeref:typename:std::vector<double>	file:	access:public
+gradientStep	Tensor.cpp	/^void gradientStep(Tensor& weights, Tensor& bias, double learningRate){$/;"	f	typeref:typename:void	signature:(Tensor & weights,Tensor & bias,double learningRate)
 initVocab	BPETokenizer.cpp	/^	void initVocab(const std::string &corpus){$/;"	f	class:BPETokenizer	typeref:typename:void	file:	access:private	signature:(const std::string & corpus)
 leaf	Tensor.cpp	/^    leaf,$/;"	e	enum:Operation	file:	access:public
 left_strides	Tensor.cpp	/^    std::vector<size_t> left_strides;$/;"	m	struct:TensorNode	typeref:typename:std::vector<size_t>	file:	access:public
+linearForward	Tensor.cpp	/^[[nodiscard]] Tensor linearForward(const Tensor& inputs,const Tensor& weights,const Tensor& bias/;"	f	typeref:typename:Tensor	signature:(const Tensor & inputs,const Tensor & weights,const Tensor & bias)
 m_idToToken	BPETokenizer.cpp	/^	std::unordered_map<int, std::string> m_idToToken;$/;"	m	class:BPETokenizer	typeref:typename:std::unordered_map<int,std::string>	file:	access:private
 m_merges	BPETokenizer.cpp	/^	std::map<std::pair<int, int>, int> m_merges; \/\/maps (tokenA, tokenB)-> newToken$/;"	m	class:BPETokenizer	typeref:typename:std::map<std::pair<int,int>,int>	file:	access:private
 m_node	Tensor.cpp	/^    std::shared_ptr<TensorNode> m_node;$/;"	m	class:Tensor	typeref:typename:std::shared_ptr<TensorNode>	file:	access:private
@@ -158,4 +161,7 @@ subtract	Tensor.cpp	/^    subtract,$/;"	e	enum:Operation	file:	access:public
 sum	Tensor.cpp	/^     [[nodiscard]] Tensor sum( ) const {$/;"	f	class:Tensor	typeref:typename:Tensor	file:	access:public	signature:() const
 sum	Tensor.cpp	/^    sum,$/;"	e	enum:Operation	file:	access:public
 train	BPETokenizer.cpp	/^	void train(const std::string &corpus, size_t targetVocabSize){$/;"	f	class:BPETokenizer	typeref:typename:void	file:	access:public	signature:(const std::string & corpus,size_t targetVocabSize)
+trainLine	Tensor.cpp	/^void trainLine(){$/;"	f	typeref:typename:void	signature:()
+trainLinearRegression	Tensor.cpp	/^void trainLinearRegression(const Tensor& inputs, const Tensor& targets,Tensor& weights, Tensor& /;"	f	typeref:typename:void	signature:(const Tensor & inputs,const Tensor & targets,Tensor & weights,Tensor & bias,size_t steps,double learningRate)
+zeroGrad	Tensor.cpp	/^    void zeroGrad(){$/;"	f	class:Tensor	typeref:typename:void	file:	access:public	signature:()
 ~BPETokenizer	BPETokenizer.cpp	/^	~BPETokenizer(){$/;"	f	class:BPETokenizer	file:	access:public	signature:()
