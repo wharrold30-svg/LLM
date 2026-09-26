@@ -16,7 +16,8 @@ enum class Operation{
     multiply,
     divide,
     sum,
-    matmul
+    matmul,
+    relu
 };
 
 struct TensorNode{
@@ -93,6 +94,15 @@ private:
         }
         return flatIndex;
     }
+
+    static void backwardUnary(TensorNode* output, const std::function<double(double,double)>& localDerivative) {
+      TensorNode* input = output->parents[0].get();
+
+      for(size_t index = 0, end = output->data.size(); index < end; ++index){
+        input->grad[index] += 
+          output->grad[index] * localDerivative(input->data[index], output->data[index]);
+      }
+    }
     
     [[nodiscard]] Tensor elementwiseBinary(const Tensor& rhs, Operation kind, const std::function<double(const double, const double)>& operation) const {
         const std::vector<size_t> resultShape = broadcastShape(m_node->shape, rhs.m_node->shape);
@@ -120,6 +130,16 @@ private:
         result.m_node->right_strides = std::move(rightStrides);
         return result;
     }
+
+     [[nodiscard]] Tensor elementwiseUnary(Operation kind, const std::function<double(double)>& operation) const {
+        std::vector<double> resultData(getNumEle());
+        std::transform(m_node->data.begin(),m_node->data.end(), resultData.begin(), operation);
+        Tensor result(m_node->shape, std::move(resultData));
+        result.m_node->operation = kind;
+
+        return result;
+      }
+
 
     [[nodiscard]] static size_t strideOffset(const std::vector<size_t>& coordinate,const std::vector<size_t>& effectiveStrides){
         size_t index = 0;
@@ -181,7 +201,7 @@ private:
             }
         }
         return result;
-    }
+  }
     
     [[nodiscard]] std::vector<size_t> strides() const {
         std::vector<size_t> results(m_node->shape.size());
@@ -321,7 +341,7 @@ public:
                                                          const size_t rightIndex = index * rightCols + col;
 
                                                          left->grad[leftIndex] += output->grad[outputIndex] * right->data[rightIndex];
-                                                         right->grad[rightIndex] += output->grad[outputIndex]* right->data[leftIndex];
+                                                         right->grad[rightIndex] += output->grad[outputIndex]* left->data[leftIndex];
                                                      }
                                                  }
                                              }
@@ -334,6 +354,13 @@ public:
                                           }
                                           break;
                                       }
+                case Operation::relu : 
+                                         backwardUnary(output, [](double input, double  na){
+                                             return input > 0.0 ? 1.0 : 0.0;
+                                             });
+                                       break;
+                                       
+
 
 
                 default:
@@ -361,7 +388,8 @@ public:
     
     [[nodiscard]] double at(const std::vector<size_t>& idx) const {
         return m_node->data[flatIndex(idx)];
-     }
+    }
+     
      [[nodiscard]] Tensor sum( ) const {
          double result = 0.0;
          for(const double value : m_node->data){
@@ -371,6 +399,12 @@ public:
          output.m_node->operation = Operation::sum;
          output.m_node->parents = {m_node};
          return output;
+     }
+     [[nodiscard]] Tensor relu() const {
+       return elementwiseUnary(Operation::relu, 
+           [](double value){
+            return std::max(0.0, value);
+           });
      }
      
      [[nodiscard]] Tensor matmul(const Tensor& other) const{
@@ -452,7 +486,7 @@ public:
             return lhs / rhs; });
     }
 
-};
+};//Tensor
 
 [[nodiscard]] Tensor mseLoss(const Tensor& prediction, const Tensor& target){
     if(prediction.getShape() != target.getShape()){
@@ -465,6 +499,18 @@ public:
 [[nodiscard]] Tensor linearForward(const Tensor& inputs,const Tensor& weights,const Tensor& bias){
     return inputs.matmul(weights) + bias;
  } 
+
+void showActivations(){
+  const Tensor input({5}, {-2.0, -1.0, 0.0, 1.0, 2.0});
+  const Tensor reluOutputs = input.relu();
+
+  std::cout << "x relu\n";
+  for(size_t index = 0, end = input.getNumEle(); index < end; ++index){
+    std::cout
+      << input.at({index}) << ' '
+      << reluOutputs.at({index}) << "\n";
+  }
+}
 
 void gradientStep(Tensor& weights, Tensor& bias, double learningRate){
     //for every weight:
@@ -517,7 +563,7 @@ int main (){
       //----------+-----------+------------------+-----------------------
       // [5, 0]  |      2      |          0         |  empty matrix 
       //----------+-----------+------------------+-----------------------
-     /* 
+      
       std::vector<size_t> shape_1{2, 3};
     std::vector<double> data_1{0, 1, 2, 3, 4, 5};
     
@@ -770,9 +816,10 @@ assert((squared_residuals.getData() ==std::vector<double>{1.0, 1.0} ));
 
     const Tensor perfect_loss = mseLoss(pred_23, pred_23);
     assert(perfect_loss.at({ }) == 0.0);
-*/
+
     trainLine();
 
+    showActivations();
     
    std::puts("Successful!"); 
 }
