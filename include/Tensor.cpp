@@ -19,7 +19,8 @@ enum class Operation{
     sum,
     matmul,
     relu,
-    sigmoid
+    sigmoid,
+    tanh
 };
 
 struct TensorNode{
@@ -366,9 +367,12 @@ public:
                                              return result * (1.0 - result);
                                              });
           break;                              
-                                       
-
-
+                case Operation::tanh:
+          backwardUnary(output,
+              [](double na, double result){
+                return 1.0 - result * result;
+              });
+          break;
 
                 default:
                     throw std::logic_error("backward rule not implemented yet");
@@ -418,6 +422,14 @@ public:
         return elementwiseUnary(Operation::sigmoid, [](double value){
             return 1.0 / (1.0 + std::exp(-value));
             }
+        );
+     }
+
+     [[nodiscard]] Tensor tanh() const {
+       return elementwiseUnary(Operation::tanh,
+           [](double value){
+           return std::tanh(value);
+           }
         );
      }
      
@@ -514,17 +526,24 @@ public:
     return inputs.matmul(weights) + bias;
  } 
 
+
+[[nodiscard]] Tensor nonlinearForward(const Tensor& inputs,const Tensor& weights,const Tensor& bias){
+    return (inputs.matmul(weights) + bias).tanh();
+ } 
+
 void showActivations(){
   const Tensor input({5}, {-2.0, -1.0, 0.0, 1.0, 2.0});
   const Tensor reluOutputs = input.relu();
   const Tensor sigmoidOutputs = input.sigmoid();
+  const Tensor tanhOutputs = input.tanh();
 
-  std::cout << "x relu sigmoid\n";
+  std::cout << "x relu sigmoid tanh\n";
   for(size_t index = 0, end = input.getNumEle(); index < end; ++index){
     std::cout
       << input.at({index}) << ' '
       << reluOutputs.at({index}) << " "
-      << sigmoidOutputs.at({index}) << "\n";
+      << sigmoidOutputs.at({index}) << " "
+      << tanhOutputs.at({index}) << "\n";
   }
 }
 
@@ -554,6 +573,20 @@ void trainLinearRegression(const Tensor& inputs, const Tensor& targets,Tensor& w
     }
 }
 
+
+void trainNonlinearRegression(const Tensor& inputs, const Tensor& targets,Tensor& weights, Tensor& bias, size_t steps, double learningRate){
+    for(size_t step = 0; step < steps; ++step){
+        weights.zeroGrad();
+        bias.zeroGrad();
+
+        const Tensor predictions = nonlinearForward(inputs, weights, bias);
+        Tensor loss = mseLoss(predictions, targets);
+        loss.backward();
+        gradientStep(weights,bias, learningRate);
+    }
+}
+
+
 void trainLine(){
     Tensor input({10, 1}, {0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0});
     Tensor targets({10, 1}, {1.0, 3.0, 5.0, 7.0, 9.0, 11.0, 13.0, 15.0, 17.0, 19.0});
@@ -562,6 +595,35 @@ void trainLine(){
     Tensor bias({}, {0.0});
 
     trainLinearRegression(input, targets, weight, bias, 10000,0.01);
+
+    std::cout << "Weight: " << weight.at({0, 0}) << "\n";
+    std::cout << "Bias: " << bias.at({}) << "\n";
+}
+
+void trainCurve(){
+  Tensor inputs(
+    {9, 1},
+    {
+      -1.0, -0.75, -0.5, -0.25, 0.0,
+      0.25, 0.5, 0.75, 1.0
+    }
+  );
+
+  Tensor targets(
+    {9, 1},
+    {
+      -0.761594, -0.462117, 0.0,
+      0.462117, 0.761594, 0.905148,
+      0.964028, 0.986614, 0.995055
+    }
+  );
+
+  // y = tanh(2x + 1)
+
+    Tensor weight({1, 1}, {0.0});
+    Tensor bias({}, {0.0});
+
+    trainNonlinearRegression(inputs, targets, weight, bias, 10000,0.01);
 
     std::cout << "Weight: " << weight.at({0, 0}) << "\n";
     std::cout << "Bias: " << bias.at({}) << "\n";
@@ -837,5 +899,7 @@ assert((squared_residuals.getData() ==std::vector<double>{1.0, 1.0} ));
 
     showActivations();
     
+    trainCurve();
+
    std::puts("Successful!"); 
 }
