@@ -6,6 +6,7 @@
 #include<functional>
 #include<memory>
 #include<utility>
+#include<cmath>
 #include<unordered_set>
 
 
@@ -17,7 +18,8 @@ enum class Operation{
     divide,
     sum,
     matmul,
-    relu
+    relu,
+    sigmoid
 };
 
 struct TensorNode{
@@ -357,8 +359,13 @@ public:
                 case Operation::relu : 
                                          backwardUnary(output, [](double input, double  na){
                                              return input > 0.0 ? 1.0 : 0.0;
+                                             });                               break;
+                case Operation::sigmoid:
+                                         backwardUnary(output,
+                                             [](double na, double result){
+                                             return result * (1.0 - result);
                                              });
-                                       break;
+          break;                              
                                        
 
 
@@ -405,6 +412,13 @@ public:
            [](double value){
             return std::max(0.0, value);
            });
+     }
+
+     [[nodiscard]] Tensor sigmoid() const {
+        return elementwiseUnary(Operation::sigmoid, [](double value){
+            return 1.0 / (1.0 + std::exp(-value));
+            }
+        );
      }
      
      [[nodiscard]] Tensor matmul(const Tensor& other) const{
@@ -503,12 +517,14 @@ public:
 void showActivations(){
   const Tensor input({5}, {-2.0, -1.0, 0.0, 1.0, 2.0});
   const Tensor reluOutputs = input.relu();
+  const Tensor sigmoidOutputs = input.sigmoid();
 
-  std::cout << "x relu\n";
+  std::cout << "x relu sigmoid\n";
   for(size_t index = 0, end = input.getNumEle(); index < end; ++index){
     std::cout
       << input.at({index}) << ' '
-      << reluOutputs.at({index}) << "\n";
+      << reluOutputs.at({index}) << " "
+      << sigmoidOutputs.at({index}) << "\n";
   }
 }
 
