@@ -139,6 +139,7 @@ private:
         std::transform(m_node->data.begin(),m_node->data.end(), resultData.begin(), operation);
         Tensor result(m_node->shape, std::move(resultData));
         result.m_node->operation = kind;
+        result.m_node->parents = {m_node};
 
         return result;
       }
@@ -367,13 +368,13 @@ public:
                                              return result * (1.0 - result);
                                              });
           break;                              
-                case Operation::tanh:
+                case Operation::tanh:{
           backwardUnary(output,
               [](double na, double result){
                 return 1.0 - result * result;
               });
           break;
-
+          }
                 default:
                     throw std::logic_error("backward rule not implemented yet");
             }
@@ -601,22 +602,9 @@ void trainLine(){
 }
 
 void trainCurve(){
-  Tensor inputs(
-    {9, 1},
-    {
-      -1.0, -0.75, -0.5, -0.25, 0.0,
-      0.25, 0.5, 0.75, 1.0
-    }
-  );
+  Tensor inputs({9, 1}, {-1.0, -0.75, -0.5, -0.25, 0.0, 0.25, 0.5, 0.75, 1.0});
 
-  Tensor targets(
-    {9, 1},
-    {
-      -0.761594, -0.462117, 0.0,
-      0.462117, 0.761594, 0.905148,
-      0.964028, 0.986614, 0.995055
-    }
-  );
+  Tensor targets({9, 1}, {-0.761594, -0.462117, 0.0, 0.462117, 0.761594, 0.905148, 0.964028, 0.986614, 0.995055});
 
   // y = tanh(2x + 1)
 
